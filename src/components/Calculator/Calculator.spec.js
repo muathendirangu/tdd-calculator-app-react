@@ -11,8 +11,8 @@ describe('Calculator', () => {
       expect(wrapper.find('div').length).toEqual(1);
     });
 
-    it('should render the display component', () => {
-      expect(wrapper.containsMatchingElement(<Display/>)).toEqual(true);
-    })
+    // it('should render the display component', () => {
+    //   expect(wrapper.containsMatchingElement(<Display/>)).toEqual(true);
+    // })
   });
   
