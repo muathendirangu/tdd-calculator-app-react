@@ -56,17 +56,17 @@ jobs:
                 aws s3 sync ~/tdd-calculator-app-react/dist s3://dev. http://react-dp.s3-website-us-east-1.amazonaws.com --delete
                 aws cloudfront create-invalidation --distribution-id DISTRIBUTION_ID_YOUR_SITE_DEV --paths /\*
               fi
-  workflows:
-    version: 2
-    build_and_deploy:
-      jobs:
-        - testing
-        - deploy:
-            requires:
-              - testing   # Deploy require testing to be successful
-            filters:
-              branches:
-                only:     # Only deploy for production, staging, and master branchs
-                  - production
-                  - staging
-                  - master
+workflows:
+  version: 2
+  build_and_deploy:
+    jobs:
+      - testing
+      - deploy:
+          requires:
+            - testing   # Deploy require testing to be successful
+          filters:
+            branches:
+              only:     # Only deploy for production, staging, and master branchs
+                - production
+                - staging
+                - master
