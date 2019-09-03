@@ -1,5 +1,5 @@
 version: 2
-  jobs:
+jobs:
     "testing":
       docker:
         - image: circleci/node:10-stretch
