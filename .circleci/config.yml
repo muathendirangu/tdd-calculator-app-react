@@ -32,3 +32,57 @@ jobs:
 
       # run tests!
       - run: yarn test
+
+  "deploy":
+      docker:
+        - image: circleci/node:latest
+      working_directory: ~/tdd-calculator-app-react
+      steps:
+        - checkout
+        - run:
+            name: Installing AWS CLI
+            working_directory: /
+            command: |
+              sudo apt-get -y -qq update
+              sudo apt-get install -y awscli
+              sudo apt-get install -y python-pip python-dev build-essential
+              sudo pip install awsebcli --upgrade
+        - run:
+            name: Preparing Artifact
+            command: |
+              yarn install
+              yarn run build # Here goes your build command.
+              cd dist       # My react app generate a Dist folder
+              zip ../build.zip -r * .[^.]* # Just zip your files
+              echo "Sucessfull building"
+
+        - run:
+            name: Deploying Client to S3 and Cloudfront
+            command: |
+              aws configure set preview.cloudfront true  # Turn on cloudfront in AWS CLI
+              if [ "${CIRCLE_BRANCH}" == "production" ]  # Check current branch to decide to which S3 bucket deploy
+              then
+                aws s3 sync ~/tdd-calculator-app-react/dist s3:// http://react-dp.s3-website-us-east-1.amazonaws.com --delete
+                aws cloudfront create-invalidation --distribution-id DISTRIBUTION_ID_YOUR_SITE_PRODUCTION --paths /\*
+              elif [ "${CIRCLE_BRANCH}" == "staging" ]
+              then
+                aws s3 sync ~/tdd-calculator-app-react/dist s3://staging. http://react-dp.s3-website-us-east-1.amazonaws.com --delete
+                aws cloudfront create-invalidation --distribution-id DISTRIBUTION_ID_YOUR_SITE_STAGING --paths /\*
+              else
+                aws s3 sync ~/tdd-calculator-app-react/dist s3://dev. http://react-dp.s3-website-us-east-1.amazonaws.com --delete
+                aws cloudfront create-invalidation --distribution-id DISTRIBUTION_ID_YOUR_SITE_DEV --paths /\*
+              fi
+  workflows:
+    version: 2
+    build_and_deploy:
+      jobs:
+        - testing
+        - deploy:
+            requires:
+              - testing   # Deploy require testing to be successful
+            filters:
+              branches:
+                only:     # Only deploy for production, staging, and master branchs
+                  - production
+                  - staging
+                  - master    
