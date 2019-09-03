@@ -1,42 +1,27 @@
-
 version: 2
-jobs:
-  "testing":
-    docker:
-      # specify the version you desire here
-      - image: circleci/node:latest
-
-      # Specify service dependencies here if necessary
-      # CircleCI maintains a library of pre-built images
-      # documented at https://circleci.com/docs/2.0/circleci-images/
-      # - image: circleci/mongo:3.4.4
-
-    working_directory: ~/tdd-calculator-app-react
-
-    steps:
-      - checkout
-
-      # Download and cache dependencies
-      - restore_cache:
-          keys:
-            - v1-dependencies-{{ checksum "package.json" }}
-            # fallback to using the latest cache if no exact match is found
-            - v1-dependencies-
-
-      - run: yarn install
-
-      - save_cache:
-          paths:
-            - node_modules
-          key: v1-dependencies-{{ checksum "package.json" }}
-
-      # run tests!
-      - run: yarn test
-
-  "deploy":
+  jobs:
+    "testing":
       docker:
-        - image: circleci/node:latest
-      working_directory: ~/tdd-calculator-app-react
+        - image: circleci/node:10-stretch
+      working_directory: ~/repo
+      steps:
+        - checkout
+        - restore_cache:
+            keys:
+            - app-{{ checksum "package.json" }}
+            # fallback to using the latest cache if no exact match is found
+            - app-
+        - run: npm install
+        - save_cache: # Save node_modules into cache with a checksum of the package.json
+            paths:
+              - node_modules
+            key: app-{{ checksum "package.json" }}
+        - run: npm run test # Run your tests
+
+    "deploy":
+      docker:
+        - image: circleci/node:10-stretch
+      working_directory: ~/repo
       steps:
         - checkout
         - run:
@@ -50,12 +35,11 @@ jobs:
         - run:
             name: Preparing Artifact
             command: |
-              yarn install
-              yarn run build # Here goes your build command.
+              npm install
+              npm run build # Here goes your build command.
               cd dist       # My react app generate a Dist folder
               zip ../build.zip -r * .[^.]* # Just zip your files
               echo "Sucessfull building"
-
         - run:
             name: Deploying Client to S3 and Cloudfront
             command: |
@@ -72,17 +56,17 @@ jobs:
                 aws s3 sync ~/tdd-calculator-app-react/dist s3://dev. http://react-dp.s3-website-us-east-1.amazonaws.com --delete
                 aws cloudfront create-invalidation --distribution-id DISTRIBUTION_ID_YOUR_SITE_DEV --paths /\*
               fi
-workflows:
-  version: 2
-  build_and_deploy:
-    jobs:
-      - testing
-      - deploy:
-          requires:
-            - testing   # Deploy require testing to be successful
-          filters:
-            branches:
-              only:     # Only deploy for production, staging, and master branchs
-                - production
-                - staging
-                - master    
+  workflows:
+    version: 2
+    build_and_deploy:
+      jobs:
+        - testing
+        - deploy:
+            requires:
+              - testing   # Deploy require testing to be successful
+            filters:
+              branches:
+                only:     # Only deploy for production, staging, and master branchs
+                  - production
+                  - staging
+                  - master
